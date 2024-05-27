@@ -10,17 +10,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
-st.markdown("""
-    <style>
-        .reportview-container {
-            margin-top: -2em;
-        }
-        #MainMenu {visibility: hidden;}
-        .stDeployButton {display:none;}
-        footer {visibility: hidden;}
-        #stDecoration {display:none;}
-    </style>
-""", unsafe_allow_html=True)
 
 st.title("Let's forecast with LSTM Model")
 
@@ -52,7 +41,7 @@ if uploaded_file is not None:
             model_choice = st.selectbox("Select an LSTM model configuration (Models with 80 and 128 units will take longer time to train):", model_options)
 
             # Select the number of days to forecast
-            forecast_days = st.number_input("Select number of days to forecast:", min_value=1, max_value=365, value=30)
+            forecast_days = st.number_input("Select number of days to forecast:", min_value=1, max_value=100, value=30)
 
             if st.button("Start Tasks"):
                 df = df[['date', 'value']]
@@ -77,7 +66,7 @@ if uploaded_file is not None:
                 ds_scaled = scaler.fit_transform(np.array(ds).reshape(-1, 1))
 
                 # Define train and test sizes
-                train_size = int(len(ds_scaled) * 0.70)
+                train_size = int(len(ds_scaled) * 0.7)
                 test_size = len(ds_scaled) - train_size
 
                 # Split data into train and test sets
@@ -158,7 +147,7 @@ if uploaded_file is not None:
                         st.plotly_chart(fig)
 
                         # Future prediction
-                        fut_inp = ds_train[len(ds_train) - 100:]
+                        fut_inp = ds_scaled[len(ds_scaled) - 100:]
                         fut_inp = fut_inp.reshape(1, -1)
                         tmp_inp = list(fut_inp)
                         tmp_inp = tmp_inp[0].tolist()
@@ -188,13 +177,13 @@ if uploaded_file is not None:
                         
                         st.subheader(f'Forecasted graph of next {forecast_days} days for {model_choice}')  
                         fig = go.Figure()
-                        fig.add_trace(go.Scatter(x=plot_new, y=scaler.inverse_transform(ds_train[len(ds_train) - 100:]).flatten(), mode='lines', name='Last 100 Days'))
+                        fig.add_trace(go.Scatter(x=plot_new, y=scaler.inverse_transform(ds_scaled[len(ds_scaled) - 100:]).flatten(), mode='lines', name='Last 100 Days'))
                         fig.add_trace(go.Scatter(x=plot_pred, y=scaler.inverse_transform(lst_output).flatten(), mode='lines', name='Forecast'))
                         fig.update_layout(title=f'Future Values Forecasting - {model_choice}', xaxis_title='Days', yaxis_title='Values')
                         fig.update_layout(plot_bgcolor='white')
                         st.plotly_chart(fig)
-
-                        # Reshape arrays for MSE calculation
+                        
+                        
                         y_test = y_test.reshape(-1, 1)
                         test_predict = test_predict.reshape(-1, 1)
                         
@@ -211,25 +200,25 @@ if uploaded_file is not None:
                         st.write("Values closer to 0 for RMSE, MSE, and MAE represent better model performance.")
 
                         
-                        ds_train_inverse = scaler.inverse_transform(ds_train.reshape(-1, 1))
+                        ds_train_inverse = scaler.inverse_transform(ds_scaled.reshape(-1, 1))
 
-                            # Display last 30 values of ds_train_inverse
+                        # Display last 30 values of ds_train_inverse
                         last_few_values = ds_train_inverse[-30:]
 
-                            # Extract the last 30 dates from the original DataFrame
-                        last_30_dates = df['date'].iloc[train_size-30:train_size].reset_index(drop=True)
+                        # Extract the last 30 dates from the original DataFrame
+                        last_30_dates = df['date'].iloc[-30:].reset_index(drop=True)
 
-                            # Create a date range for the forecasted values
-                        last_date = df['date'].iloc[train_size - 1]
+                        # Create a date range for the forecasted values
+                        last_date = df['date'].iloc[-1]
                         forecast_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=len(lst_output), freq='D')
 
-                            # Create DataFrame for the last 30 values and their dates
+                        # Create DataFrame for the last 30 values and their dates
                         last_30_df = pd.DataFrame({'Date': last_30_dates, 'Last 30 Values': last_few_values.flatten()})
 
-                            # Create DataFrame for the forecasted values and their dates
+                        # Create DataFrame for the forecasted values and their dates
                         forecasted_values = pd.DataFrame({'Date': forecast_dates, 'Forecasted Values': scaler.inverse_transform(lst_output).flatten()})
 
-                            # Concatenate the two DataFrames
+                        # Concatenate the two DataFrames
                         combined_df = pd.concat([last_30_df, forecasted_values], ignore_index=True)
 
                         st.write(f"{model_choice} - Last 30 Values and Forecasted Values:")
