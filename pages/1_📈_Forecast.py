@@ -19,6 +19,7 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.subheader("Dataset Preview")
     st.write(df.head())
+     st.write(df.tail())
     
     # Display the number of rows in the dataset
     st.write(f"Number of rows in the dataset: {len(df)}")
